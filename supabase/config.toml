@@ -1,0 +1,16 @@
+project_id = "reset"
+
+[api]
+enabled = true
+
+[db]
+major_version = 17
+
+[auth]
+enabled = true
+
+[auth.email]
+enable_signup = true
+
+[functions.analyze-room]
+verify_jwt = true
