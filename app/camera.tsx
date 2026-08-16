@@ -63,7 +63,7 @@ export default function CameraScreen() {
             <Text style={styles.reviewTitle}>Does the room fit in frame?</Text><Text style={styles.reviewText}>A clear, wide view helps Reset find the highest-impact tasks.</Text>
             <View style={styles.reviewActions}>
               <Pressable onPress={() => setPhotoUri(null)} style={styles.retakeButton}><Ionicons name="refresh" size={20} color="#FFFFFF" /><Text style={styles.retakeText}>Retake</Text></Pressable>
-              <Pressable onPress={() => {}} style={styles.useButton}><Text style={styles.useText}>Use photo</Text><Ionicons name="arrow-forward" size={20} color={C.ink} /></Pressable>
+              <Pressable onPress={() => router.push({ pathname: '/plan-preview', params: { minutes, goal, photoUri } })} style={styles.useButton}><Text style={styles.useText}>Use photo</Text><Ionicons name="arrow-forward" size={20} color={C.ink} /></Pressable>
             </View>
           </View>
         </SafeAreaView>
