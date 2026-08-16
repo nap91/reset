@@ -23,7 +23,14 @@ export async function analyzeRoomPhoto(photoUri: string, minutes: number, goal: 
     if (updateError) throw updateError;
 
     const { data, error } = await supabase.functions.invoke<AnalyzeResponse>('analyze-room', { body: { sessionId: session.id } });
-    if (error) throw new Error(error.message || 'The AI could not analyze this photo.');
+    if (error) {
+      let message = error.message || 'The AI could not analyze this photo.';
+      const context = 'context' in error ? error.context : null;
+      if (context instanceof Response) {
+        try { const body = await context.json(); if (body?.error) message = body.error; } catch { /* Keep the safe fallback message. */ }
+      }
+      throw new Error(message);
+    }
     if (!data?.plan) throw new Error('The AI returned no reset plan.');
     return data;
   } catch (cause) {

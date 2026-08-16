@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
   } catch (cause) {
     if (sessionId) await supabase.from('reset_sessions').update({ status: 'failed' }).eq('id', sessionId);
     const message = cause instanceof Error ? cause.message : 'Room analysis failed.';
+    console.error('analyze-room failed:', message);
     return Response.json({ error: message }, { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
