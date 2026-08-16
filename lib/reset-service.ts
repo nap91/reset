@@ -4,6 +4,47 @@ import { ResetGoal, ResetPlan } from '@/lib/reset-ai';
 
 type AnalyzeResponse = { plan: ResetPlan; sessionId: string; model: string };
 
+export async function startResetSession(sessionId: string) {
+  const { error } = await supabase.from('reset_sessions').update({ status: 'active', started_at: new Date().toISOString() }).eq('id', sessionId);
+  if (error) throw new Error(error.message);
+}
+
+export async function completeResetTask(sessionId: string, position: number) {
+  const { error } = await supabase.from('reset_tasks').update({ completed_at: new Date().toISOString() }).eq('session_id', sessionId).eq('position', position);
+  if (error) throw new Error(error.message);
+}
+
+export async function completeResetSession(sessionId: string) {
+  const { error } = await supabase.from('reset_sessions').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', sessionId);
+  if (error) throw new Error(error.message);
+}
+
+export type ResetProgress = {
+  completedResets: number;
+  completedMinutes: number;
+  latest: { id: string; title: string; roomType: string; completedAt: string; minutes: number } | null;
+};
+
+export async function getResetProgress(): Promise<ResetProgress> {
+  await ensureAnonymousSession();
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 7);
+  const { data, error } = await supabase
+    .from('reset_sessions')
+    .select('id, room_type, plan, estimated_minutes, completed_at')
+    .eq('status', 'completed')
+    .gte('completed_at', weekStart.toISOString())
+    .order('completed_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  const sessions = data ?? [];
+  const latest = sessions[0];
+  return {
+    completedResets: sessions.length,
+    completedMinutes: sessions.reduce((sum, item) => sum + (item.estimated_minutes ?? 0), 0),
+    latest: latest ? { id: latest.id, title: (latest.plan as ResetPlan | null)?.title ?? 'Completed reset', roomType: latest.room_type ?? 'Room', completedAt: latest.completed_at!, minutes: latest.estimated_minutes ?? 0 } : null,
+  };
+}
+
 export async function analyzeRoomPhoto(photoUri: string, minutes: number, goal: ResetGoal): Promise<AnalyzeResponse> {
   const authSession = await ensureAnonymousSession();
   const { data: session, error: createError } = await supabase
