@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,7 +45,7 @@ export default function HomeScreen() {
             </Pressable>
           ); })}
         </View>
-        <Pressable accessibilityRole="button" onPress={() => {}} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}>
+        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/camera', params: { minutes: selectedTime, goal: selectedGoal } })} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}>
           <Ionicons name="camera" size={21} color="#FFFFFF" /><Text style={styles.primaryButtonText}>Take a room photo</Text><Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </Pressable>
         <Text style={styles.privacyNote}><Ionicons name="lock-closed-outline" size={13} color={COLORS.muted} />{' '}Your room photo stays private.</Text>
