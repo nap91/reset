@@ -8,9 +8,19 @@ major_version = 17
 
 [auth]
 enabled = true
+enable_anonymous_sign_ins = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = []
 
 [auth.email]
 enable_signup = true
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
 
 [functions.analyze-room]
 verify_jwt = true
