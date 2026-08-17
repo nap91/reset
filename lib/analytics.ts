@@ -9,7 +9,10 @@ export type AnalyticsEventName =
   | 'task_skipped'
   | 'reset_completed'
   | 'after_photo_saved'
-  | 'share_opened';
+  | 'share_opened'
+  | 'paywall_opened'
+  | 'subscription_purchased'
+  | 'purchase_restored';
 
 export function trackEvent(eventName: AnalyticsEventName, properties: Record<string, string | number | boolean | null> = {}, sessionId?: string) {
   void ensureAnonymousSession().then((session) => supabase.from('analytics_events').insert({

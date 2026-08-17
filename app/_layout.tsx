@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="reset-complete" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="reset-detail" options={{ headerShown: false }} />
           <Stack.Screen name="insights" options={{ headerShown: false }} />
+          <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style="dark" />
