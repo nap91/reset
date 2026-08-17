@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getResetProgress, ResetProgress } from '@/lib/reset-service';
+import { router } from 'expo-router';
 
 const C = { ink: '#19201D', muted: '#68716C', cream: '#F8F6F0', card: '#FFFFFF', green: '#215C48', greenSoft: '#E5EFEA', coral: '#F0785E', border: '#E7E5DE' };
 
 export default function ProgressScreen() {
-  const [progress, setProgress] = useState<ResetProgress>({ completedResets: 0, completedMinutes: 0, latest: null });
+  const [progress, setProgress] = useState<ResetProgress>({ completedResets: 0, completedMinutes: 0, history: [] });
   useFocusEffect(useCallback(() => { getResetProgress().then(setProgress).catch(() => {}); }, []));
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -23,10 +24,11 @@ export default function ProgressScreen() {
           <View style={styles.statCard}><Ionicons name="checkmark-circle-outline" size={24} color={C.green} /><Text style={styles.statNumber}>{progress.completedResets}</Text><Text style={styles.statLabel}>Resets</Text></View>
           <View style={styles.statCard}><Ionicons name="time-outline" size={24} color={C.green} /><Text style={styles.statNumber}>{progress.completedMinutes}</Text><Text style={styles.statLabel}>Minutes</Text></View>
         </View>
-        <View style={styles.emptyCard}>
-          <View style={styles.emptyIcon}><Ionicons name="images-outline" size={26} color={C.green} /></View>
-          <Text style={styles.emptyTitle}>{progress.latest ? progress.latest.title : 'Your resets will live here'}</Text><Text style={styles.emptyText}>{progress.latest ? `${progress.latest.roomType} · ${progress.latest.minutes} minutes · Completed today` : 'Before-and-after photos and completed sessions will appear after your first reset.'}</Text>
-        </View>
+        <Text style={styles.sectionLabel}>RESET HISTORY</Text>
+        {progress.history.length ? progress.history.map((item) => <Pressable key={item.id} onPress={() => router.push({ pathname: '/reset-detail', params: { ...item } })} style={styles.historyCard}>
+          <View style={styles.thumbnails}>{item.beforeUrl ? <Image source={{ uri: item.beforeUrl }} style={styles.thumb} /> : <View style={styles.thumb} />}{item.afterUrl ? <Image source={{ uri: item.afterUrl }} style={styles.thumb} /> : <View style={[styles.thumb, styles.afterPlaceholder]}><Ionicons name="camera-outline" size={22} color={C.green} /><Text style={styles.addAfter}>Add after</Text></View>}</View>
+          <View style={styles.historyCopy}><Text style={styles.emptyTitle}>{item.title}</Text><Text style={styles.emptyText}>{item.roomType} · {item.minutes} minutes</Text></View><Ionicons name="chevron-forward" size={20} color={C.muted} />
+        </Pressable>) : <View style={styles.emptyCard}><View style={styles.emptyIcon}><Ionicons name="images-outline" size={26} color={C.green} /></View><Text style={styles.emptyTitle}>Your resets will live here</Text><Text style={styles.emptyText}>Before-and-after photos and completed sessions will appear after your first reset.</Text></View>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -39,5 +41,5 @@ const styles = StyleSheet.create({
   streakNumber: { color: '#FFFFFF', fontSize: 48, fontWeight: '700', lineHeight: 55 }, streakLabel: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' }, streakHint: { color: '#C9DCD4', fontSize: 13, marginTop: 8 },
   sectionLabel: { color: C.muted, fontSize: 12, fontWeight: '700', letterSpacing: 1.1, marginBottom: 12 }, statsRow: { flexDirection: 'row', gap: 10, marginBottom: 26 },
   statCard: { flex: 1, backgroundColor: C.card, borderRadius: 18, borderWidth: 1, borderColor: C.border, padding: 17 }, statNumber: { color: C.ink, fontSize: 27, fontWeight: '700', marginTop: 13 }, statLabel: { color: C.muted, fontSize: 13, marginTop: 2 },
-  emptyCard: { backgroundColor: C.greenSoft, borderRadius: 20, padding: 22, alignItems: 'center' }, emptyIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }, emptyTitle: { color: C.ink, fontSize: 17, fontWeight: '700', marginBottom: 7 }, emptyText: { color: C.muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  emptyCard: { backgroundColor: C.greenSoft, borderRadius: 20, padding: 22, alignItems: 'center' }, emptyIcon: { width: 50, height: 50, borderRadius: 16, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', marginBottom: 13 }, emptyTitle: { color: C.ink, fontSize: 16, fontWeight: '700', marginBottom: 5 }, emptyText: { color: C.muted, fontSize: 13, lineHeight: 19 }, historyCard: { backgroundColor: C.card, borderRadius: 19, borderWidth: 1, borderColor: C.border, padding: 11, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }, thumbnails: { width: 94, height: 64, flexDirection: 'row', gap: 3, overflow: 'hidden', borderRadius: 11 }, thumb: { flex: 1, backgroundColor: C.greenSoft }, afterPlaceholder: { alignItems: 'center', justifyContent: 'center' }, addAfter: { color: C.green, fontSize: 8, fontWeight: '700' }, historyCopy: { flex: 1 },
 });

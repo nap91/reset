@@ -22,8 +22,36 @@ export async function completeResetSession(sessionId: string) {
 export type ResetProgress = {
   completedResets: number;
   completedMinutes: number;
-  latest: { id: string; title: string; roomType: string; completedAt: string; minutes: number } | null;
+  history: ResetHistoryItem[];
 };
+
+export type ResetHistoryItem = {
+  id: string;
+  title: string;
+  roomType: string;
+  completedAt: string;
+  minutes: number;
+  beforeUrl: string | null;
+  afterUrl: string | null;
+};
+
+export async function saveAfterPhoto(sessionId: string, photoUri: string) {
+  const authSession = await ensureAnonymousSession();
+  const path = `${authSession.user.id}/${sessionId}/after.jpg`;
+  const image = new File(photoUri);
+  const bytes = await image.arrayBuffer();
+  const { error: uploadError } = await supabase.storage.from('room-photos').upload(path, bytes, { contentType: image.type || 'image/jpeg', upsert: true });
+  if (uploadError) throw new Error(uploadError.message);
+  const { error } = await supabase.from('reset_sessions').update({ after_photo_path: path }).eq('id', sessionId);
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+async function signedPhotoUrl(path: string | null) {
+  if (!path) return null;
+  const { data, error } = await supabase.storage.from('room-photos').createSignedUrl(path, 3600);
+  return error ? null : data.signedUrl;
+}
 
 export async function getResetProgress(): Promise<ResetProgress> {
   await ensureAnonymousSession();
@@ -31,17 +59,25 @@ export async function getResetProgress(): Promise<ResetProgress> {
   weekStart.setDate(weekStart.getDate() - 7);
   const { data, error } = await supabase
     .from('reset_sessions')
-    .select('id, room_type, plan, estimated_minutes, completed_at')
+    .select('id, room_type, plan, estimated_minutes, completed_at, photo_path, after_photo_path')
     .eq('status', 'completed')
     .gte('completed_at', weekStart.toISOString())
     .order('completed_at', { ascending: false });
   if (error) throw new Error(error.message);
   const sessions = data ?? [];
-  const latest = sessions[0];
+  const history = await Promise.all(sessions.map(async (item) => ({
+    id: item.id,
+    title: (item.plan as ResetPlan | null)?.title ?? 'Completed reset',
+    roomType: item.room_type ?? 'Room',
+    completedAt: item.completed_at!,
+    minutes: item.estimated_minutes ?? 0,
+    beforeUrl: await signedPhotoUrl(item.photo_path),
+    afterUrl: await signedPhotoUrl(item.after_photo_path),
+  })));
   return {
     completedResets: sessions.length,
     completedMinutes: sessions.reduce((sum, item) => sum + (item.estimated_minutes ?? 0), 0),
-    latest: latest ? { id: latest.id, title: (latest.plan as ResetPlan | null)?.title ?? 'Completed reset', roomType: latest.room_type ?? 'Room', completedAt: latest.completed_at!, minutes: latest.estimated_minutes ?? 0 } : null,
+    history,
   };
 }
 

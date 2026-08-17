@@ -43,7 +43,7 @@ export default function ResetSessionScreen() {
       const completedTotal = completed + (didComplete ? 1 : 0);
       if (index === total - 1) {
         await completeResetSession(params.sessionId!);
-        router.replace({ pathname: '/reset-complete', params: { completed: String(completedTotal), total: String(total), minutes: String(activePlan.estimatedMinutes) } });
+        router.replace({ pathname: '/reset-complete', params: { sessionId: params.sessionId!, completed: String(completedTotal), total: String(total), minutes: String(activePlan.estimatedMinutes) } });
         return;
       }
       const next = index + 1;

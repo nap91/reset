@@ -3,19 +3,22 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { saveAfterPhoto } from '@/lib/reset-service';
 
 const C = { ink: '#19201D', muted: '#68716C', cream: '#F8F6F0', card: '#FFFFFF', green: '#215C48', greenSoft: '#E5EFEA', coral: '#F0785E' };
 const goalLabels: Record<string, string> = { quick: 'Quick Reset', guest: 'Guest Ready', calm: 'Clear My Head', function: 'Make It Functional' };
 
 export default function CameraScreen() {
-  const { minutes = '10', goal = 'quick' } = useLocalSearchParams<{ minutes?: string; goal?: string }>();
+  const { minutes = '10', goal = 'quick', mode = 'before', sessionId } = useLocalSearchParams<{ minutes?: string; goal?: string; mode?: string; sessionId?: string }>();
+  const isAfter = mode === 'after';
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   async function takePhoto() {
     if (!cameraReady || capturing || !cameraRef.current) return;
@@ -26,6 +29,22 @@ export default function CameraScreen() {
     } finally {
       setCapturing(false);
     }
+  }
+
+  async function usePhoto() {
+    if (!photoUri) return;
+    if (!isAfter) {
+      router.push({ pathname: '/plan-preview', params: { minutes, goal, photoUri } });
+      return;
+    }
+    if (!sessionId) return Alert.alert('Missing reset', 'Please return to Progress and try again.');
+    setSaving(true);
+    try {
+      await saveAfterPhoto(sessionId, photoUri);
+      router.dismissAll();
+      router.navigate('/(tabs)/explore');
+    } catch (cause) { Alert.alert('Could not save photo', cause instanceof Error ? cause.message : 'Please try again.'); }
+    finally { setSaving(false); }
   }
 
   if (!permission) {
@@ -40,8 +59,8 @@ export default function CameraScreen() {
         <Pressable accessibilityLabel="Close camera" onPress={() => router.back()} style={styles.permissionClose}><Ionicons name="close" size={26} color={C.ink} /></Pressable>
         <View style={styles.permissionContent}>
           <View style={styles.permissionIcon}><Ionicons name="camera-outline" size={36} color={C.green} /></View>
-          <Text style={styles.permissionTitle}>Let Reset see the room</Text>
-          <Text style={styles.permissionText}>Camera access lets you take the one photo Reset needs to build your focused cleanup plan.</Text>
+          <Text style={styles.permissionTitle}>{isAfter ? 'Capture your progress' : 'Let Reset see the room'}</Text>
+          <Text style={styles.permissionText}>{isAfter ? 'Take one photo from roughly the same angle so you can see the difference.' : 'Camera access lets you take the one photo Reset needs to build your focused cleanup plan.'}</Text>
           <View style={styles.privateRow}><Ionicons name="lock-closed" size={16} color={C.green} /><Text style={styles.privateText}>Your photo stays private.</Text></View>
           <Pressable onPress={permanentlyDenied ? () => Linking.openSettings() : requestPermission} style={styles.permissionButton}>
             <Text style={styles.permissionButtonText}>{permanentlyDenied ? 'Open iPhone Settings' : 'Allow camera access'}</Text>
@@ -58,12 +77,12 @@ export default function CameraScreen() {
         <StatusBar style="light" />
         <Image source={{ uri: photoUri }} style={styles.reviewImage} resizeMode="cover" />
         <SafeAreaView style={styles.reviewOverlay} edges={['top', 'bottom']}>
-          <View style={styles.reviewHeader}><Pressable accessibilityLabel="Close review" onPress={() => router.back()} style={styles.darkCircle}><Ionicons name="close" size={25} color="#FFFFFF" /></Pressable><View style={styles.reviewPill}><Text style={styles.reviewPillText}>{minutes} min · {goalLabels[goal] ?? 'Quick Reset'}</Text></View></View>
+          <View style={styles.reviewHeader}><Pressable accessibilityLabel="Close review" onPress={() => router.back()} style={styles.darkCircle}><Ionicons name="close" size={25} color="#FFFFFF" /></Pressable><View style={styles.reviewPill}><Text style={styles.reviewPillText}>{isAfter ? 'AFTER PHOTO' : `${minutes} min · ${goalLabels[goal] ?? 'Quick Reset'}`}</Text></View></View>
           <View style={styles.reviewBottom}>
-            <Text style={styles.reviewTitle}>Does the room fit in frame?</Text><Text style={styles.reviewText}>A clear, wide view helps Reset find the highest-impact tasks.</Text>
+            <Text style={styles.reviewTitle}>{isAfter ? 'Happy with this angle?' : 'Does the room fit in frame?'}</Text><Text style={styles.reviewText}>{isAfter ? 'A similar angle makes your before-and-after easier to compare.' : 'A clear, wide view helps Reset find the highest-impact tasks.'}</Text>
             <View style={styles.reviewActions}>
               <Pressable onPress={() => setPhotoUri(null)} style={styles.retakeButton}><Ionicons name="refresh" size={20} color="#FFFFFF" /><Text style={styles.retakeText}>Retake</Text></Pressable>
-              <Pressable onPress={() => router.push({ pathname: '/plan-preview', params: { minutes, goal, photoUri } })} style={styles.useButton}><Text style={styles.useText}>Use photo</Text><Ionicons name="arrow-forward" size={20} color={C.ink} /></Pressable>
+              <Pressable disabled={saving} onPress={usePhoto} style={styles.useButton}>{saving ? <ActivityIndicator color={C.green} /> : <><Text style={styles.useText}>{isAfter ? 'Save after photo' : 'Use photo'}</Text><Ionicons name="arrow-forward" size={20} color={C.ink} /></>}</Pressable>
             </View>
           </View>
         </SafeAreaView>
@@ -76,9 +95,9 @@ export default function CameraScreen() {
       <StatusBar style="light" />
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" onCameraReady={() => setCameraReady(true)} />
       <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
-        <View style={styles.cameraHeader}><Pressable accessibilityLabel="Close camera" onPress={() => router.back()} style={styles.darkCircle}><Ionicons name="close" size={25} color="#FFFFFF" /></Pressable><View style={styles.cameraPill}><Text style={styles.cameraPillText}>{minutes} min · {goalLabels[goal] ?? 'Quick Reset'}</Text></View><View style={styles.headerSpacer} /></View>
+        <View style={styles.cameraHeader}><Pressable accessibilityLabel="Close camera" onPress={() => router.back()} style={styles.darkCircle}><Ionicons name="close" size={25} color="#FFFFFF" /></Pressable><View style={styles.cameraPill}><Text style={styles.cameraPillText}>{isAfter ? 'AFTER PHOTO' : `${minutes} min · ${goalLabels[goal] ?? 'Quick Reset'}`}</Text></View><View style={styles.headerSpacer} /></View>
         <View style={styles.guide}><View style={[styles.corner, styles.topLeft]} /><View style={[styles.corner, styles.topRight]} /><View style={[styles.corner, styles.bottomLeft]} /><View style={[styles.corner, styles.bottomRight]} /></View>
-        <View style={styles.cameraBottom}><Text style={styles.cameraHint}>Step back and fit most of the room in frame</Text><Pressable accessibilityLabel="Take photo" disabled={!cameraReady || capturing} onPress={takePhoto} style={[styles.shutterOuter, (!cameraReady || capturing) && styles.shutterDisabled]}><View style={styles.shutterInner}>{capturing && <ActivityIndicator color={C.green} />}</View></Pressable></View>
+        <View style={styles.cameraBottom}><Text style={styles.cameraHint}>{isAfter ? 'Match the angle of your first photo if you can' : 'Step back and fit most of the room in frame'}</Text><Pressable accessibilityLabel="Take photo" disabled={!cameraReady || capturing} onPress={takePhoto} style={[styles.shutterOuter, (!cameraReady || capturing) && styles.shutterDisabled]}><View style={styles.shutterInner}>{capturing && <ActivityIndicator color={C.green} />}</View></Pressable></View>
       </SafeAreaView>
     </View>
   );

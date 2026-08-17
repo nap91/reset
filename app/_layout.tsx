@@ -18,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="plan-preview" options={{ headerShown: false }} />
           <Stack.Screen name="reset-session" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="reset-complete" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="reset-detail" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style="dark" />
