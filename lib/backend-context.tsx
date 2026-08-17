@@ -1,5 +1,6 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
 import { ensureAnonymousSession } from '@/lib/supabase';
+import { trackEvent } from '@/lib/analytics';
 
 type BackendStatus = 'connecting' | 'connected' | 'error';
 type BackendContextValue = { status: BackendStatus; userId: string | null; error: string | null };
@@ -18,6 +19,7 @@ export function BackendProvider({ children }: PropsWithChildren) {
         if (!active) return;
         setUserId(session.user.id);
         setStatus('connected');
+        trackEvent('app_opened');
       })
       .catch((cause: unknown) => {
         if (!active) return;

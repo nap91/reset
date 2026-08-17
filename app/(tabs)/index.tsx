@@ -23,7 +23,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View><Text style={styles.eyebrow}>RESET</Text><Text style={styles.title}>Make space to breathe.</Text></View>
-          <Pressable accessibilityLabel="Open profile" style={styles.profileButton}><Ionicons name="person-outline" size={22} color={COLORS.ink} /><View accessibilityLabel={`Backend ${backendStatus}`} style={[styles.statusDot, backendStatus === 'connected' ? styles.statusConnected : backendStatus === 'error' ? styles.statusError : styles.statusConnecting]} /></Pressable>
+          <Pressable accessibilityLabel="Open app health" onPress={() => router.push('/insights')} style={styles.profileButton}><Ionicons name="pulse-outline" size={22} color={COLORS.ink} /><View accessibilityLabel={`Backend ${backendStatus}`} style={[styles.statusDot, backendStatus === 'connected' ? styles.statusConnected : backendStatus === 'error' ? styles.statusError : styles.statusConnecting]} /></Pressable>
         </View>
         <View style={styles.heroCard}>
           <View style={styles.heroIcon}><Ionicons name="camera-outline" size={28} color={COLORS.green} /></View>

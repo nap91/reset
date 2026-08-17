@@ -5,6 +5,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ResetPlan } from '@/lib/reset-ai';
 import { completeResetSession, completeResetTask, startResetSession } from '@/lib/reset-service';
+import { trackEvent } from '@/lib/analytics';
 
 const C = { ink: '#19201D', muted: '#68716C', cream: '#F8F6F0', card: '#FFFFFF', green: '#215C48', greenSoft: '#E5EFEA', coral: '#F0785E' };
 const clock = (seconds: number) => `${Math.floor(Math.max(0, seconds) / 60)}:${String(Math.max(0, seconds) % 60).padStart(2, '0')}`;
@@ -40,6 +41,7 @@ export default function ResetSessionScreen() {
     setSaving(true);
     try {
       if (didComplete) await completeResetTask(params.sessionId!, index + 1);
+      else trackEvent('task_skipped', { position: index + 1 }, params.sessionId);
       const completedTotal = completed + (didComplete ? 1 : 0);
       if (index === total - 1) {
         await completeResetSession(params.sessionId!);

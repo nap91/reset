@@ -2,12 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { trackEvent } from '@/lib/analytics';
 
 const C = { ink: '#19201D', muted: '#68716C', cream: '#F8F6F0', card: '#FFFFFF', green: '#215C48', greenSoft: '#E5EFEA', coral: '#F0785E', border: '#E7E5DE' };
 
 export default function ResetDetailScreen() {
   const item = useLocalSearchParams<{ id: string; title: string; roomType: string; minutes: string; beforeUrl?: string; afterUrl?: string }>();
-  const share = () => Share.share({ title: 'My Reset', message: `I completed a ${item.minutes}-minute Reset and made space to breathe. Small resets add up.`, ...(item.afterUrl ? { url: item.afterUrl } : {}) });
+  const share = () => { trackEvent('share_opened', { has_after_photo: Boolean(item.afterUrl) }, item.id); return Share.share({ title: 'My Reset', message: `I completed a ${item.minutes}-minute Reset and made space to breathe. Small resets add up.`, ...(item.afterUrl ? { url: item.afterUrl } : {}) }); };
   return <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
     <View style={styles.header}><Pressable onPress={() => router.back()} style={styles.circle}><Ionicons name="chevron-back" size={23} color={C.ink} /></Pressable><Text style={styles.headerTitle}>Your reset</Text><Pressable onPress={share} style={styles.circle}><Ionicons name="share-outline" size={22} color={C.green} /></Pressable></View>
     <View style={styles.body}><Text style={styles.eyebrow}>{item.roomType?.toUpperCase()}</Text><Text style={styles.title}>{item.title}</Text><Text style={styles.meta}>{item.minutes} focused minutes · Completed</Text>

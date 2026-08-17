@@ -1,22 +1,26 @@
 import { File } from 'expo-file-system';
 import { ensureAnonymousSession, supabase } from '@/lib/supabase';
 import { ResetGoal, ResetPlan } from '@/lib/reset-ai';
+import { reportError, trackEvent } from '@/lib/analytics';
 
 type AnalyzeResponse = { plan: ResetPlan; sessionId: string; model: string };
 
 export async function startResetSession(sessionId: string) {
   const { error } = await supabase.from('reset_sessions').update({ status: 'active', started_at: new Date().toISOString() }).eq('id', sessionId);
   if (error) throw new Error(error.message);
+  trackEvent('reset_started', {}, sessionId);
 }
 
 export async function completeResetTask(sessionId: string, position: number) {
   const { error } = await supabase.from('reset_tasks').update({ completed_at: new Date().toISOString() }).eq('session_id', sessionId).eq('position', position);
   if (error) throw new Error(error.message);
+  trackEvent('task_completed', { position }, sessionId);
 }
 
 export async function completeResetSession(sessionId: string) {
   const { error } = await supabase.from('reset_sessions').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', sessionId);
   if (error) throw new Error(error.message);
+  trackEvent('reset_completed', {}, sessionId);
 }
 
 export type ResetProgress = {
@@ -44,6 +48,7 @@ export async function saveAfterPhoto(sessionId: string, photoUri: string) {
   if (uploadError) throw new Error(uploadError.message);
   const { error } = await supabase.from('reset_sessions').update({ after_photo_path: path }).eq('id', sessionId);
   if (error) throw new Error(error.message);
+  trackEvent('after_photo_saved', {}, sessionId);
   return path;
 }
 
@@ -109,9 +114,11 @@ export async function analyzeRoomPhoto(photoUri: string, minutes: number, goal: 
       throw new Error(message);
     }
     if (!data?.plan) throw new Error('The AI returned no reset plan.');
+    trackEvent('plan_generated', { model: data.model, task_count: data.plan.tasks.length, requested_minutes: minutes }, data.sessionId);
     return data;
   } catch (cause) {
     await supabase.from('reset_sessions').update({ status: 'failed' }).eq('id', session.id);
+    reportError('room_analysis', cause);
     throw cause;
   }
 }

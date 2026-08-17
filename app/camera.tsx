@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { saveAfterPhoto } from '@/lib/reset-service';
+import { trackEvent } from '@/lib/analytics';
 
 const C = { ink: '#19201D', muted: '#68716C', cream: '#F8F6F0', card: '#FFFFFF', green: '#215C48', greenSoft: '#E5EFEA', coral: '#F0785E' };
 const goalLabels: Record<string, string> = { quick: 'Quick Reset', guest: 'Guest Ready', calm: 'Clear My Head', function: 'Make It Functional' };
@@ -25,7 +26,7 @@ export default function CameraScreen() {
     setCapturing(true);
     try {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-      if (photo?.uri) setPhotoUri(photo.uri);
+      if (photo?.uri) { setPhotoUri(photo.uri); trackEvent('photo_captured', { type: isAfter ? 'after' : 'before' }, sessionId); }
     } finally {
       setCapturing(false);
     }

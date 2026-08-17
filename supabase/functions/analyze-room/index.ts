@@ -58,6 +58,7 @@ function validatePlan(value: unknown, minutes: number, goal: string): asserts va
 }
 
 Deno.serve(async (req) => {
+  const startedAt = Date.now();
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return Response.json({ error: 'Method not allowed.' }, { status: 405, headers: corsHeaders });
 
@@ -110,10 +111,28 @@ Deno.serve(async (req) => {
     const { error: taskError } = await supabase.from('reset_tasks').insert(taskRows);
     if (taskError) throw taskError;
 
+    const usage = raw?.usage ?? {};
+    const { error: metricError } = await supabase.from('ai_runs').insert({
+      user_id: user.id,
+      session_id: session.id,
+      model: MODEL,
+      status: 'succeeded',
+      latency_ms: Date.now() - startedAt,
+      input_tokens: usage.input_tokens ?? null,
+      output_tokens: usage.output_tokens ?? null,
+      total_tokens: usage.total_tokens ?? null,
+      provider_request_id: raw?.id ?? null,
+    });
+    if (metricError) console.error('AI success metric was not saved:', metricError.message);
+
     return Response.json({ plan, sessionId: session.id, model: MODEL }, { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (cause) {
     if (sessionId) await supabase.from('reset_sessions').update({ status: 'failed' }).eq('id', sessionId);
     const message = cause instanceof Error ? cause.message : 'Room analysis failed.';
+    if (sessionId) {
+      const { error: metricError } = await supabase.from('ai_runs').insert({ user_id: user.id, session_id: sessionId, model: MODEL, status: 'failed', latency_ms: Date.now() - startedAt, error_code: message.slice(0, 120) });
+      if (metricError) console.error('AI failure metric was not saved:', metricError.message);
+    }
     console.error('analyze-room failed:', message);
     return Response.json({ error: message }, { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
